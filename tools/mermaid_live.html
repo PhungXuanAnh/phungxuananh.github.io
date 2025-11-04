@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowchart Editor & Export</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .editor-section {
+            margin-bottom: 20px;
+        }
+        #chart-editor {
+            width: 100%;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        #chart-editor:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+        #chart-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #0052a3;
+        }
+        button.secondary {
+            background-color: #6c757d;
+        }
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+        .toggle-btn {
+            background-color: #28a745;
+        }
+        .toggle-btn:hover {
+            background-color: #218838;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            border-radius: 4px;
+        }
+        .info ul {
+            margin: 10px 0;
+        }
+        .error {
+            padding: 15px;
+            background-color: #ffe7e7;
+            border-left: 4px solid #cc0000;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+            color: #cc0000;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Mermaid Flowchart Editor & Exporter</h1>
+        
+        <div id="controls">
+            <button onclick="exportToPNG()">📥 Download PNG</button>
+            <button onclick="exportToSVG()">📥 Download SVG</button>
+            <button class="toggle-btn" onclick="toggleEditor()">✏️ Toggle Editor</button>
+            <button class="secondary" onclick="resetChart()">🔄 Reset</button>
+        </div>
+
+        <div class="error" id="error-message"></div>
+
+        <div class="editor-section" id="editor-section">
+            <label for="chart-editor">Edit Chart Code (auto-updates as you type):</label>
+            <textarea id="chart-editor" spellcheck="false"></textarea>
+        </div>
+        
+        <div id="chart-container">
+            <div id="chart-display"></div>
+        </div>
+
+        <div class="info">
+            <strong>📋 Instructions:</strong>
+            <ul>
+                <li><strong>Edit the code</strong> in the text area above - the chart updates automatically</li>
+                <li><strong>Download PNG/SVG</strong> to export your chart</li>
+                <li><strong>Toggle Editor</strong> to show/hide the code editor</li>
+                <li><strong>Reset</strong> to restore the original chart</li>
+            </ul>
+            <p><strong>📖 Learn More:</strong> <a href="https://mermaid.js.org/syntax/flowchart.html" target="_blank">Mermaid Flowchart Syntax</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Original chart code
+        const originalChartCode = `flowchart TD
+    A[Ad Request] --> B[Ad Server Entry Point]
+
+    subgraph AdServer[Ad Server]
+        B --> C[Create Environment Object]
+        C --> D[Set dv_data Attribute]
+        D --> E{Check LRU Cache for DV Data?}
+
+        E -- Yes --> F[Use Cached dv_data]
+        E -- No --> G[Call DoubleVerify API]
+        G --> H[Store Response in LRU Cache]
+        H --> F
+
+        %% Parallel filters before macro replacement
+        F --> I1[Filter Line Items / Campaigns by Segment]
+        F --> I2[Filter Delivery Rules / AdSources by Invalid Traffic]
+        I1 --> J[Replace Macros using dv_data.segments]
+        I2 --> J
+        J --> K[Proceed with Ad Selection & Response]
+    end
+
+    K --> L[Send Ad Response to Client]`;
+
+        let updateTimeout;
+        let mermaidInitialized = false;
+
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        // Initialize the editor and chart
+        function init() {
+            const editor = document.getElementById('chart-editor');
+            editor.value = originalChartCode;
+            renderChart(originalChartCode);
+            
+            // Add input event listener for auto-update
+            editor.addEventListener('input', function() {
+                clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(() => {
+                    renderChart(editor.value);
+                }, 500); // 500ms debounce
+            });
+        }
+
+        // Render the chart
+        async function renderChart(code) {
+            const display = document.getElementById('chart-display');
+            const errorMsg = document.getElementById('error-message');
+            
+            try {
+                // Clear previous content
+                display.innerHTML = '';
+                errorMsg.style.display = 'none';
+                
+                // Create a unique ID for this render
+                const id = 'mermaid-' + Date.now();
+                
+                // Render the chart
+                const { svg } = await mermaid.render(id, code);
+                display.innerHTML = svg;
+                
+            } catch (error) {
+                console.error('Mermaid render error:', error);
+                errorMsg.textContent = '❌ Error rendering chart: ' + error.message;
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // Toggle editor visibility
+        function toggleEditor() {
+            const editor = document.getElementById('editor-section');
+            if (editor.style.display === 'none') {
+                editor.style.display = 'block';
+            } else {
+                editor.style.display = 'none';
+            }
+        }
+
+        // Reset to original chart
+        function resetChart() {
+            document.getElementById('chart-editor').value = originalChartCode;
+            renderChart(originalChartCode);
+        }
+
+        // Export to PNG
+        async function exportToPNG() {
+            const svg = document.querySelector('#chart-display svg');
+            if (!svg) {
+                alert('Please wait for the chart to render');
+                return;
+            }
+
+            try {
+                const svgClone = svg.cloneNode(true);
+                const bbox = svg.getBBox();
+                const padding = 40;
+                const width = bbox.width + (padding * 2);
+                const height = bbox.height + (padding * 2);
+                
+                svgClone.setAttribute('width', width);
+                svgClone.setAttribute('height', height);
+                svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('width', '100%');
+                rect.setAttribute('height', '100%');
+                rect.setAttribute('fill', 'white');
+                svgClone.insertBefore(rect, svgClone.firstChild);
+                
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const svgBase64 = btoa(unescape(encodeURIComponent(svgData)));
+                const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = width * 2;
+                canvas.height = height * 2;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(2, 2);
+                
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob(function(blob) {
+                        const link = document.createElement('a');
+                        link.download = 'flowchart.png';
+                        link.href = URL.createObjectURL(blob);
+                        link.click();
+                        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+                    }, 'image/png', 1.0);
+                };
+                img.onerror = function() {
+                    alert('Error converting to PNG. Please try the SVG export instead.');
+                };
+                img.src = dataUrl;
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Error exporting PNG: ' + error.message);
+            }
+        }
+
+        // Export to SVG
+        function exportToSVG() {
+            const svg = document.querySelector('#chart-display svg');
+            if (!svg) {
+                alert('Please wait for the chart to render');
+                return;
+            }
+
+            try {
+                const svgClone = svg.cloneNode(true);
+                const bbox = svg.getBBox();
+                const padding = 40;
+                const width = bbox.width + (padding * 2);
+                const height = bbox.height + (padding * 2);
+                
+                svgClone.setAttribute('width', width);
+                svgClone.setAttribute('height', height);
+                svgClone.setAttribute('viewBox', `${bbox.x - padding} ${bbox.y - padding} ${width} ${height}`);
+                svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('width', '100%');
+                rect.setAttribute('height', '100%');
+                rect.setAttribute('fill', 'white');
+                svgClone.insertBefore(rect, svgClone.firstChild);
+                
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                const link = document.createElement('a');
+                link.download = 'flowchart.svg';
+                link.href = url;
+                link.click();
+                
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Error exporting SVG: ' + error.message);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
