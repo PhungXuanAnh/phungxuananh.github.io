@@ -1,4 +1,4 @@
-# My GitHub Pages Website
+# PhungXuanAnh Pages Website
 
 This is a simple, clean GitHub Pages website with a navigation menu structure.
 
@@ -44,7 +44,7 @@ The navigation menu appears on all pages and includes:
 
 ### 2. Customize Site Name
 
-Replace "My Site" in the navigation brand across all HTML files with your preferred site name.
+Replace "PhungXuanAnh" in the navigation brand across all HTML files with your preferred site name.
 
 ### 3. Add Tools
 
