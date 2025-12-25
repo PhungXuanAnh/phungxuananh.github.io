@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kim Tự Tháp - Phương Pháp Đường Tròn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-amber-50 to-orange-50 min-h-screen">
+    <div id="app" class="max-w-4xl mx-auto p-6"></div>
+
+    <script>
+        // Các thông số
+        let diameter = 41;
+
+        function calculate() {
+            const radius = diameter / 2;
+            const angleInDegrees = 52 + 51 / 60; // 52°51'
+            const angleInRadians = angleInDegrees * Math.PI / 180;
+
+            // Tính toán các kích thước
+            const sideEdge = radius; // Cạnh bên = bán kính
+            const baseHalf = sideEdge * Math.cos(angleInRadians); // Nửa cạnh đáy
+            const baseLength = baseHalf * 2; // Cạnh đáy hình vuông
+            const slantHeight = sideEdge * Math.sin(angleInRadians); // Chiều cao mặt bên
+
+            // Chiều cao kim tự tháp
+            const apothem = baseLength / 2;
+            const actualHeight = Math.sqrt(sideEdge * sideEdge - apothem * apothem);
+
+            // Tính kích thước đường thẳng màu đỏ (khoảng cách giữa 2 đỉnh ngoài cùng)
+            const apexAngle = 180 - 2 * angleInDegrees;
+            const halfApex = apexAngle / 2;
+            const totalAngle = 4 * apexAngle;
+            const gapAngle = 360 - totalAngle;
+            const gapAngleRad = gapAngle * Math.PI / 180;
+            const gapLength = 2 * radius * Math.sin(gapAngleRad / 2);
+
+            return {
+                radius, angleInDegrees, sideEdge, baseLength, slantHeight, actualHeight,
+                apexAngle, halfApex, gapAngle, gapLength
+            };
+        }
+
+        function render() {
+            const calc = calculate();
+            const { radius, angleInDegrees, sideEdge, baseLength, slantHeight, actualHeight,
+                apexAngle, halfApex, gapAngle, gapLength } = calc;
+
+            // Tính toán các điểm cho SVG
+            const centerX = 250;
+            const centerY = 250;
+            const r = 180;
+
+            // Tính toán 5 điểm (4 tam giác = 5 đỉnh trên đường tròn)
+            const startAngle = -90 - halfApex * 2;
+            const points = [];
+            for (let i = 0; i <= 4; i++) {
+                const angle = (startAngle + i * halfApex * 2) * Math.PI / 180;
+                const x = centerX + r * Math.cos(angle);
+                const y = centerY + r * Math.sin(angle);
+                points.push({ x, y });
+            }
+
+            // Tính điểm giữa đường đỏ
+            const midX = (points[0].x + points[4].x) / 2;
+            const midY = (points[0].y + points[4].y) / 2;
+
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h1 class="text-3xl font-bold text-amber-800 mb-2 flex items-center gap-2">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2L2 21h20L12 2z"></path>
+                        </svg>
+                        Kim Tự Tháp - Phương Pháp Đường Tròn
+                    </h1>
+                    <p class="text-gray-600 mb-4">Góc đáy: 52°51' (giống Kim Tự Tháp Giza)</p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-xl font-bold text-amber-700 mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke-width="2"></circle>
+                        </svg>
+                        Bước 1: Vẽ Đường Tròn
+                    </h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Đường kính đường tròn (cm):
+                        </label>
+                        <input
+                            type="number"
+                            id="diameterInput"
+                            value="${diameter}"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        />
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-lg">📏 Bán kính: <span class="font-bold text-amber-800">${radius.toFixed(2)} cm</span></p>
+                        <p class="text-sm text-gray-600 mt-2">Bán kính này = Cạnh bên của kim tự tháp</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-xl font-bold text-amber-700 mb-4">🎨 Minh Họa 4 Tam Giác Trong Đường Tròn</h2>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <svg viewBox="0 0 500 500" class="w-full max-w-2xl mx-auto">
+                            <!-- Đường tròn -->
+                            <circle cx="250" cy="250" r="180" fill="none" stroke="#f59e0b" stroke-width="3"/>
+                            
+                            <!-- Tâm đường tròn - đỉnh chung -->
+                            <circle cx="250" cy="250" r="6" fill="#dc2626"/>
+                            <text x="260" y="255" class="text-sm font-bold" fill="#dc2626">Tâm (Đỉnh chung)</text>
+                            
+                            <!-- 4 tam giác -->
+                            ${points.slice(0, 4).map((p, idx) => {
+                const nextP = points[idx + 1];
+                return `
+                                    <g>
+                                        ${idx === 0 ? `<line x1="${centerX}" y1="${centerY}" x2="${p.x}" y2="${p.y}" stroke="#3b82f6" stroke-width="3"/>` : ''}
+                                        <line x1="${centerX}" y1="${centerY}" x2="${nextP.x}" y2="${nextP.y}" stroke="#3b82f6" stroke-width="3"/>
+                                        <line x1="${p.x}" y1="${p.y}" x2="${nextP.x}" y2="${nextP.y}" stroke="#059669" stroke-width="2" stroke-dasharray="5,3"/>
+                                        <circle cx="${p.x}" cy="${p.y}" r="4" fill="#059669"/>
+                                        ${idx === 3 ? `<circle cx="${nextP.x}" cy="${nextP.y}" r="4" fill="#059669"/>` : ''}
+                                    </g>
+                                `;
+            }).join('')}
+                            
+                            <!-- Đường thẳng màu đỏ nối 2 đỉnh ngoài cùng -->
+                            <line 
+                                x1="${points[0].x}" 
+                                y1="${points[0].y}" 
+                                x2="${points[4].x}" 
+                                y2="${points[4].y}" 
+                                stroke="#ef4444" 
+                                stroke-width="3"
+                            />
+                            
+                            <!-- 2 điểm đầu mút của đường đỏ -->
+                            <circle cx="${points[0].x}" cy="${points[0].y}" r="6" fill="#ef4444"/>
+                            <circle cx="${points[4].x}" cy="${points[4].y}" r="6" fill="#ef4444"/>
+                            
+                            <!-- Kích thước đường đỏ - đặt ngay trên đường đỏ -->
+                            <text 
+                                x="${midX}" 
+                                y="${midY - 15}" 
+                                text-anchor="middle"
+                                font-size="14"
+                                font-weight="bold"
+                                fill="#ef4444"
+                            >${gapLength.toFixed(2)} cm</text>
+                            
+                            <!-- Nhãn góc đáy -->
+                            <text x="${points[0].x - 50}" y="${points[0].y + 5}" class="text-xs font-bold" fill="#dc2626">52°51'</text>
+                            <text x="${points[1].x + 10}" y="${points[1].y + 5}" class="text-xs font-bold" fill="#dc2626">52°51'</text>
+                            
+                            <!-- Chú thích cạnh bên -->
+                            <text x="270" y="150" class="text-sm font-bold" fill="#3b82f6">r = ${radius.toFixed(1)}cm</text>
+                            <text x="265" y="165" class="text-xs" fill="#3b82f6">(Cạnh bên)</text>
+                            
+                            <!-- Chú thích đường kính -->
+                            <line x1="70" y1="250" x2="430" y2="250" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,5" opacity="0.5"/>
+                            <text x="320" y="270" class="text-sm font-bold" fill="#f59e0b">Ø = ${diameter}cm</text>
+                            
+                            <!-- Chú thích cạnh đáy -->
+                            <text x="200" y="55" class="text-xs font-bold" fill="#059669">Cạnh đáy = ${baseLength.toFixed(2)}cm</text>
+                            
+                            <!-- Chú thích tổng quát -->
+                            <text x="10" y="30" class="text-xs font-bold" fill="#374151">4 Tam Giác liền nhau - Chung cạnh bên - Cạnh bên = Bán kính = ${radius.toFixed(1)}cm</text>
+                            <text x="10" y="480" class="text-xs" fill="#6b7280">💡 Các đỉnh cạnh đáy nằm trên đường tròn | 🔵 Cạnh bên chung | 🟢 Cạnh đáy | 🔴 Khoảng trống để gấp</text>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-600 text-center mt-4">
+                        ✂️ Đây là bản vẽ phẳng (net) của kim tự tháp. Cắt theo đường tròn, gấp 4 tam giác lên theo khoảng trống màu đỏ, các cạnh đáy sẽ ghép thành hình vuông!
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-xl font-bold text-amber-700 mb-4">📐 Kết Quả Tính Toán</h2>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-blue-800 mb-2">Cạnh bên (Edge):</h3>
+                            <p class="text-2xl font-bold text-blue-900">${sideEdge.toFixed(2)} cm</p>
+                            <p class="text-sm text-gray-600">Từ đỉnh xuống góc đáy</p>
+                        </div>
+
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-green-800 mb-2">Cạnh đáy hình vuông:</h3>
+                            <p class="text-2xl font-bold text-green-900">${baseLength.toFixed(2)} cm</p>
+                            <p class="text-sm text-gray-600">Mỗi cạnh của đáy</p>
+                        </div>
+
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-purple-800 mb-2">Chiều cao mặt bên (Slant Height):</h3>
+                            <p class="text-2xl font-bold text-purple-900">${slantHeight.toFixed(2)} cm</p>
+                            <p class="text-sm text-gray-600">Từ đỉnh xuống trung điểm cạnh đáy</p>
+                        </div>
+
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h3 class="font-bold text-red-800 mb-2">Chiều cao kim tự tháp:</h3>
+                            <p class="text-2xl font-bold text-red-900">${actualHeight.toFixed(2)} cm</p>
+                            <p class="text-sm text-gray-600">Từ đỉnh xuống tâm đáy</p>
+                        </div>
+                        
+                        <div class="bg-orange-50 p-4 rounded-lg border-2 border-red-300">
+                            <h3 class="font-bold text-red-800 mb-2">🔴 Khoảng trống (đường thẳng đỏ):</h3>
+                            <p class="text-2xl font-bold text-red-600">${gapLength.toFixed(2)} cm</p>
+                            <p class="text-sm text-gray-600">Khoảng cách giữa 2 đỉnh đáy ngoài cùng</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-xl font-bold text-amber-700 mb-4">📋 Hướng Dẫn Làm</h2>
+                    <ol class="space-y-3 list-decimal list-inside text-gray-700">
+                        <li class="pl-2">Vẽ đường tròn đường kính ${diameter} cm (bán kính ${radius.toFixed(2)} cm)</li>
+                        <li class="pl-2">Vẽ 4 tam giác cân với:
+                            <ul class="list-disc list-inside ml-6 mt-2 space-y-1 text-sm">
+                                <li>Cạnh bên = ${sideEdge.toFixed(2)} cm</li>
+                                <li>Góc đáy = 52°51'</li>
+                                <li>Cạnh đáy = ${baseLength.toFixed(2)} cm</li>
+                            </ul>
+                        </li>
+                        <li class="pl-2">Ghép 4 tam giác tạo thành hình vuông đáy ${baseLength.toFixed(2)} × ${baseLength.toFixed(2)} cm</li>
+                        <li class="pl-2">Dựng kim tự tháp với chiều cao ${actualHeight.toFixed(2)} cm</li>
+                    </ol>
+                </div>
+
+                <div class="bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-amber-800 mb-3 flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2" stroke-width="2"></rect>
+                        </svg>
+                        Tỷ Lệ Vàng
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Tỷ lệ Chiều cao / Nửa đáy:</p>
+                            <p class="text-xl font-bold text-amber-900">${(actualHeight / (baseLength / 2)).toFixed(4)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Pi/2 (lý thuyết):</p>
+                            <p class="text-xl font-bold text-amber-900">${(Math.PI / 2).toFixed(4)}</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">
+                        ✨ Góc 52°51' tạo ra tỷ lệ gần với π/2, đây là đặc điểm của Kim Tự Tháp Giza!
+                    </p>
+                </div>
+            `;
+
+            // Thêm event listener cho input
+            document.getElementById('diameterInput').addEventListener('change', function (e) {
+                diameter = Number(e.target.value);
+                render();
+            });
+        }
+
+        // Render lần đầu
+        render();
+    </script>
+</body>
+
+</html>
